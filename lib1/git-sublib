@@ -5,6 +5,8 @@ import sys
 
 REMOTE_TYPE = 'branch'
 REMOTE_BRANCH = 'lib_1'
+REMOTE_LAST_MERGED_COMMIT = '021e48690531edec5c9ac2b24cad2337a85836c1'
+LOCAL_LAST_MERGE_PARENT = 'b2e4b0c6c041a09b838cc179bb55136266172ddc'
 
 USAGE = """
 USAGE
@@ -20,7 +22,7 @@ def main():
     print(f'Command: {command}')
 
     if command == 'pull':
-        print "PULLING"
+        print("PULLING")
 
 
 if __name__ == '__main__':
