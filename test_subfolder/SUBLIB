@@ -5,10 +5,10 @@ import subprocess
 import os
 import os.path
 
-UPSTREAM_URL = ''
-UPSTREAM_BRANCH = ''
-UPSTREAM_LAST_MERGED_COMMIT = ''
-LOCAL_LAST_MERGE_PARENT = ''
+UPSTREAM_URL = None
+UPSTREAM_BRANCH = None
+UPSTREAM_LAST_MERGED_COMMIT = None
+LOCAL_LAST_MERGE_PARENT = None
 
 USAGE = """
 USAGE
@@ -47,13 +47,25 @@ def clone(src_branch):
     call('git read-tree -u --prefix {p} {h}'.format(p=prefix, h=remote_hash))
 
     with open(os.path.join(os.curdir, 'SUBLIB'), 'a') as thisfile:
-        thisfile.writelines([
-            "UPSTREAM_URL = '{}'".format(''),
-            "UPSTREAM_BRANCH = '{}'".format(src_branch),
-            "UPSTREAM_LAST_MERGED_COMMIT = '{}'".format(remote_hash),
-            "LOCAL_LAST_MERGE_PARENT = '{}'".format(local_hash),
-        ])
+        store_config({
+            'UPSTREAM_URL': None,
+            'UPSTREAM_BRANCH': src_branch,
+            'UPSTREAM_LAST_MERGED_COMMIT': remote_hash,
+            'LOCAL_LAST_MERGE_PARENT': local_hash,
+        })
 
+def store_config(args):
+    with open(os.path.join(os.curdir, 'SUBLIB'), 'r') as oldfile:
+        lines = oldfile.readlines()
+
+    for i, line in enumerate(lines):
+        if line.split():
+            varname = line.split()[0]
+            if varname in args:
+                lines[i] = "{ARG} = {val}\n".format(ARG=varname, val=args[varname].__repr__())
+
+    with open(os.path.join(os.curdir, 'SUBLIB'), 'w') as newfile:
+        newfile.writelines(lines)
 
 def get_prefix():
     repo_root = call('git rev-parse --show-toplevel')
