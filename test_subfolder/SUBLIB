@@ -2,6 +2,9 @@
 
 import sys
 import subprocess
+import os
+import os.path
+
 UPSTREAM_URL = ''
 UPSTREAM_BRANCH = 'lib_1'
 UPSTREAM_LAST_MERGED_COMMIT = '021e48690531edec5c9ac2b24cad2337a85836c1'
@@ -18,7 +21,7 @@ def main():
         return
 
     command = sys.argv[1]
-    print(f'Command: {command}')
+    print('Command: {}'.format(command))
 
     if command == 'clone':
         if len(sys.argv) < 3:
@@ -32,15 +35,27 @@ def main():
 
 
 def clone(src_branch):
-    pass
+    """Performs a git read-tree operation and records evidence of what it did"""
+    # TODO: check that the directory is empty except for this file
+    # TODO: check that the index is clean
+    local_hash = call('git rev-parse HEAD')
+    remote_hash = call('git rev-parse {}'.format(src_branch))
 
+    prefix = get_prefix()
+
+    call('git read-tree -u --prefix {p} {h}'.format(p=prefix, h=remote_hash))
+
+
+def get_prefix():
+    repo_root = call('git rev-parse --show-toplevel')
+    return os.path.relpath(os.curdir, start=repo_root)
 
 def call(cmd):
     print(cmd)
     if type(cmd) == str:
         cmd = cmd.split()
     output = subprocess.check_output(cmd).decode('utf-8').strip()
-    print("--", output)
+    print("-- {}".format(output))
     return output
 
 
