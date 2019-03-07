@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+
+import sys
+import subprocess
+UPSTREAM_URL = ''
+UPSTREAM_BRANCH = 'lib_1'
+UPSTREAM_LAST_MERGED_COMMIT = '021e48690531edec5c9ac2b24cad2337a85836c1'
+LOCAL_LAST_MERGE_PARENT = 'b2e4b0c6c041a09b838cc179bb55136266172ddc'
+
+USAGE = """
+USAGE
+"""
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(USAGE)
+        return
+
+    command = sys.argv[1]
+    print(f'Command: {command}')
+
+    if command == 'clone':
+        if len(sys.argv) < 3:
+            print(USAGE)
+            return
+        clone(sys.argv[2])
+    elif command in 'pull push':
+        raise NotImplementedError("")
+    else:
+        print(USAGE)
+
+
+def clone(src_branch):
+    pass
+
+
+def call(cmd):
+    print(cmd)
+    if type(cmd) == str:
+        cmd = cmd.split()
+    output = subprocess.check_output(cmd).decode('utf-8').strip()
+    print("--", output)
+    return output
+
+
+if __name__ == '__main__':
+    main()
+
+
+# def merge_remote_changes():
+#     head = call('git rev-parse HEAD')
+#     merge_base_local = get_merge_base_local()
+#     print(f'Merge base: {merge_base_local}')
+
+#     # Switch to the parent of the last merge
+#     call(f'git checkout {LOCAL_LAST_MERGE_PARENT}')
+
+#     # Set the index to hold the result of the last merge
+#     call(f'git read-tree -um {merge_base_local}')
+
+#     # Make a merge commit for the last merge
+#     tree_hash = call('git write-tree')
+#     created_base_hash = call(
+#         f'git commit-tree -p {LOCAL_LAST_MERGE_PARENT} -p {REMOTE_LAST_MERGED_COMMIT} {tree_hash} -m "Helloworld"')
+
+#     call(f'git checkout {created_base_hash}')
+
+#     # Cherry-pick the changes from local into the new simulated branch
+#     call(f'git cherry-pick {merge_base_local}..{head}')
+
+#     # Do the merge
