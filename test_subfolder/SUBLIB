@@ -6,9 +6,9 @@ import os
 import os.path
 
 UPSTREAM_URL = ''
-UPSTREAM_BRANCH = 'lib_1'
-UPSTREAM_LAST_MERGED_COMMIT = '021e48690531edec5c9ac2b24cad2337a85836c1'
-LOCAL_LAST_MERGE_PARENT = 'b2e4b0c6c041a09b838cc179bb55136266172ddc'
+UPSTREAM_BRANCH = ''
+UPSTREAM_LAST_MERGED_COMMIT = ''
+LOCAL_LAST_MERGE_PARENT = ''
 
 USAGE = """
 USAGE
@@ -38,6 +38,7 @@ def clone(src_branch):
     """Performs a git read-tree operation and records evidence of what it did"""
     # TODO: check that the directory is empty except for this file
     # TODO: check that the index is clean
+    # TODO: check that this file is in the right directory
     local_hash = call('git rev-parse HEAD')
     remote_hash = call('git rev-parse {}'.format(src_branch))
 
@@ -45,10 +46,19 @@ def clone(src_branch):
 
     call('git read-tree -u --prefix {p} {h}'.format(p=prefix, h=remote_hash))
 
+    with open(os.path.join(os.curdir, 'SUBLIB'), 'a') as thisfile:
+        thisfile.writelines([
+            "UPSTREAM_URL = '{}'".format(''),
+            "UPSTREAM_BRANCH = '{}'".format(src_branch),
+            "UPSTREAM_LAST_MERGED_COMMIT = '{}'".format(remote_hash),
+            "LOCAL_LAST_MERGE_PARENT = '{}'".format(local_hash),
+        ])
+
 
 def get_prefix():
     repo_root = call('git rev-parse --show-toplevel')
     return os.path.relpath(os.curdir, start=repo_root)
+
 
 def call(cmd):
     print(cmd)
