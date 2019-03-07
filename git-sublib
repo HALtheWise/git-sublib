@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+# This directory is synchronized with a remote branch or repository.
+# Use './git-sublib pull' to incorporate new changes from the remote.
+import sys
+
+REMOTE_TYPE = 'branch'
+REMOTE_BRANCH = 'lib_1'
+
+USAGE = """
+USAGE
+"""
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(USAGE)
+        return
+
+    command = sys.argv[1]
+    print(f'Command: {command}')
+
+
+if __name__ == '__main__':
+    main()
