@@ -53,8 +53,11 @@ def clone(src_branch):
             'UPSTREAM_LAST_MERGED_COMMIT': remote_hash,
             'LOCAL_LAST_MERGE_PARENT': local_hash,
         })
+    
+    call('git add .')
 
 def store_config(args):
+    # TODO: add new args correctly as well
     with open(os.path.join(os.curdir, 'SUBLIB'), 'r') as oldfile:
         lines = oldfile.readlines()
 
