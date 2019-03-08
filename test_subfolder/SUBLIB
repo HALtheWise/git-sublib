@@ -16,6 +16,7 @@ USAGE = """
 USAGE
 """
 
+FILENAME = 'SUBLIB'
 
 def main():
     if len(sys.argv) < 2:
@@ -31,15 +32,45 @@ def main():
             return
         clone(sys.argv[2])
     elif command == 'pull':
-        pull()
+        pull(sys.argv[2] if len(sys.argv) >= 3 else UPSTREAM_BRANCH)
     elif command == 'push':
         raise NotImplementedError("")
     else:
         print(USAGE)
 
+def get_last_merge():
+    return call(['git', 'rev-list', '{}..HEAD'.format(
+        LOCAL_LAST_MERGE_PARENT)]).split('\n')[-1]
 
-def pull():
-    make_merging_repo()
+def pull(remote_branch):
+    prefix = get_prefix()
+    try:
+        local_subdir_hash_1 = call('git rev-parse {}:{}'.format(
+            LOCAL_LAST_MERGE_PARENT, prefix))
+    except subprocess.CalledProcessError:
+        local_subdir_hash_1 = call('git hash-object -t tree /dev/null')
+    # local_hash = call('git rev-parse HEAD')
+    # remote_hash = call('git rev-parse {}'.format(remote_branch))
+    last_merge_subdir_hash = call('git rev-parse {}:{}'.format(
+            get_last_merge(), prefix))
+
+    temp_repo = make_merging_repo()
+
+    # Set up the HEAD to be what the local repo was before the last merge
+    call('git read-tree --reset -u {h}'.format(h=local_subdir_hash_1), cwd=temp_repo)
+    call('git rm -f {}'.format(FILENAME), cwd=temp_repo)
+    call('git commit --allow-empty -m LastMergeLocalBase', cwd=temp_repo)
+    created_local = call('git rev-parse HEAD', cwd=temp_repo)
+
+    # Create the old merge commit
+    # TODO: Check the remote branch actually exists
+    call('git read-tree --reset -u {}'.format(last_merge_subdir_hash), cwd=temp_repo)
+    call('git rm -f {}'.format(FILENAME), cwd=temp_repo)
+    tree_hash = call('git write-tree', cwd=temp_repo)
+    created_base = call(
+        'git commit-tree -p {l} -p {r} {h} -m CommitBase'.format(
+            l=created_local, r=UPSTREAM_LAST_MERGED_COMMIT, h=tree_hash), cwd=temp_repo)
+    call('git checkout {}'.format(created_base), cwd=temp_repo)
 
 
 def clone(src_branch):
@@ -54,7 +85,7 @@ def clone(src_branch):
 
     call('git read-tree -u --prefix {p} {h}'.format(p=prefix, h=remote_hash))
 
-    with open(os.path.join(os.curdir, 'SUBLIB'), 'a') as thisfile:
+    with open(os.path.join(os.curdir, FILENAME), 'a') as thisfile:
         store_config({
             'UPSTREAM_URL': None,
             'UPSTREAM_BRANCH': src_branch,
@@ -100,12 +131,14 @@ def call(cmd, cwd=None):
 def make_merging_repo():
     # TODO(eric): Remove the old repo at a more reasonable time
     try:
-        subprocess.check_output('rm /tmp/sublib* -r', shell=True)
+        subprocess.check_output('rm /tmp/sublib* -rf', shell=True)
     except subprocess.CalledProcessError:
         pass
 
     real_repo = call('git rev-parse --show-toplevel')
-    temp_repo = tempfile.mkdtemp(prefix='sublib_temp_')
+    # temp_repo = tempfile.mkdtemp(prefix='sublib_temp_')
+    temp_repo = '/tmp/sublib_temp'
+    os.mkdir(temp_repo)
     print(temp_repo)
 
     call('git init', cwd=temp_repo)
