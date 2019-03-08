@@ -23,12 +23,17 @@ This file is currently planned to be an executable Python 2/3 script using only 
 
 ## Functionalities
 - [ ] **clone** Copy the git-sublib file into a new directory in your repository, then run `git-sublib clone [remote] [branch]` to install a new library in that directory. 
-	- [ ] Works for other branches in the same repo
+	- [x] Works for other branches in the same repo
 	- [ ] Works for other repositories
-	- [ ] Records the commit hash of both the current commit and the upstream branch for later use
-	- [ ] Sets the provided source as the tracking branch, and saves in subtree file
-	- [ ] `--squash` behavior as default
+	- [x] Records the commit hash of both the current commit and the upstream branch for later use
+	- [x] Sets the provided source as the tracking branch, and saves in subtree file
+	- [ ] `--no-squash` flag (`--squash` is default)
 - [ ] **pull** Merges changes from upstream, defaulting to the tracking branch.
 	- [ ] Allows merge conflict resolution
 	- [ ] Allows either "mine on theirs" or "theirs on mine" visualization for merge resolution
 - [ ] **push** Filters changes in your repository that touch the subdirectory, and pushes those to the upstream origin. Like normal `git push`, requires that `pull` has been run recently.
+- [ ] **self-upgrade** Download and install an updated version of this script
+- [ ] **init** Convert an existing populated folder
+	- [ ] Submodule or Git repo
+	- [ ] Subtree
+	- [ ] Folder (automatically scan for what commit it matches)

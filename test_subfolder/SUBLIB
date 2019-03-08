@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import sys
 import subprocess
 import os
 import os.path
+import tempfile
 
 UPSTREAM_URL = None
 UPSTREAM_BRANCH = None
@@ -28,10 +30,16 @@ def main():
             print(USAGE)
             return
         clone(sys.argv[2])
-    elif command in 'pull push':
+    elif command == 'pull':
+        pull()
+    elif command == 'push':
         raise NotImplementedError("")
     else:
         print(USAGE)
+
+
+def pull():
+    make_merging_repo()
 
 
 def clone(src_branch):
@@ -53,8 +61,11 @@ def clone(src_branch):
             'UPSTREAM_LAST_MERGED_COMMIT': remote_hash,
             'LOCAL_LAST_MERGE_PARENT': local_hash,
         })
-    
+
     call('git add .')
+
+    print('Files from {} cloned into the current directory, commit to finalize')
+
 
 def store_config(args):
     # TODO: add new args correctly as well
@@ -65,23 +76,32 @@ def store_config(args):
         if line.split():
             varname = line.split()[0]
             if varname in args:
-                lines[i] = "{ARG} = {val}\n".format(ARG=varname, val=args[varname].__repr__())
+                lines[i] = "{ARG} = {val}\n".format(
+                    ARG=varname, val=args[varname].__repr__())
 
     with open(os.path.join(os.curdir, 'SUBLIB'), 'w') as newfile:
         newfile.writelines(lines)
+
 
 def get_prefix():
     repo_root = call('git rev-parse --show-toplevel')
     return os.path.relpath(os.curdir, start=repo_root)
 
 
-def call(cmd):
+def call(cmd, cwd=None):
     print(cmd)
     if type(cmd) == str:
         cmd = cmd.split()
-    output = subprocess.check_output(cmd).decode('utf-8').strip()
+    output = subprocess.check_output(cmd, cwd=cwd).decode('utf-8').strip()
     print("-- {}".format(output))
     return output
+
+
+def make_merging_repo():
+    temp_repo = tempfile.mkdtemp(prefix='sublib_temp_')
+    print(temp_repo)
+
+    call('git init', cwd=temp_repo)
 
 
 if __name__ == '__main__':
