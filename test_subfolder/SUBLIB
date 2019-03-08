@@ -98,10 +98,22 @@ def call(cmd, cwd=None):
 
 
 def make_merging_repo():
+    # TODO(eric): Remove the old repo at a more reasonable time
+    try:
+        subprocess.check_output('rm /tmp/sublib* -r', shell=True)
+    except subprocess.CalledProcessError:
+        pass
+
+    real_repo = call('git rev-parse --show-toplevel')
     temp_repo = tempfile.mkdtemp(prefix='sublib_temp_')
     print(temp_repo)
 
     call('git init', cwd=temp_repo)
+
+    # TODO: consider using other git mechanisms to make this fast for giant repos
+    call('git remote add -f local {}/.git'.format(real_repo), cwd=temp_repo)
+
+    return temp_repo
 
 
 if __name__ == '__main__':
