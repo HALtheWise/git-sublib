@@ -18,6 +18,7 @@ USAGE
 
 FILENAME = 'SUBLIB'
 
+
 def main():
     if len(sys.argv) < 2:
         print(USAGE)
@@ -38,39 +39,56 @@ def main():
     else:
         print(USAGE)
 
+
 def get_last_merge():
     return call(['git', 'rev-list', '{}..HEAD'.format(
         LOCAL_LAST_MERGE_PARENT)]).split('\n')[-1]
 
+
+def read_subdir_from_ref(ref, prefix, cwd=None):
+    """Reads the data from the provided hash in the prefix subdir, 
+    except this file"""
+
+    try:
+        local_subdir_hash = call('git rev-parse {}:{}'.format(
+            ref, prefix))
+    except subprocess.CalledProcessError:
+        local_subdir_hash = call('git hash-object -t tree /dev/null')
+
+    call('git read-tree --reset -u {h}'.format(h=local_subdir_hash), cwd=cwd)
+    call('git rm -f {}'.format(FILENAME), cwd=cwd)
+
+
 def pull(remote_branch):
     prefix = get_prefix()
-    try:
-        local_subdir_hash_1 = call('git rev-parse {}:{}'.format(
-            LOCAL_LAST_MERGE_PARENT, prefix))
-    except subprocess.CalledProcessError:
-        local_subdir_hash_1 = call('git hash-object -t tree /dev/null')
-    # local_hash = call('git rev-parse HEAD')
+
+    local_head = call('git rev-parse HEAD')
     # remote_hash = call('git rev-parse {}'.format(remote_branch))
-    last_merge_subdir_hash = call('git rev-parse {}:{}'.format(
-            get_last_merge(), prefix))
 
     temp_repo = make_merging_repo()
 
     # Set up the HEAD to be what the local repo was before the last merge
-    call('git read-tree --reset -u {h}'.format(h=local_subdir_hash_1), cwd=temp_repo)
-    call('git rm -f {}'.format(FILENAME), cwd=temp_repo)
+    read_subdir_from_ref(LOCAL_LAST_MERGE_PARENT, prefix, temp_repo)
     call('git commit --allow-empty -m LastMergeLocalBase', cwd=temp_repo)
     created_local = call('git rev-parse HEAD', cwd=temp_repo)
 
     # Create the old merge commit
     # TODO: Check the remote branch actually exists
-    call('git read-tree --reset -u {}'.format(last_merge_subdir_hash), cwd=temp_repo)
-    call('git rm -f {}'.format(FILENAME), cwd=temp_repo)
+    read_subdir_from_ref(get_last_merge(), prefix, temp_repo)
     tree_hash = call('git write-tree', cwd=temp_repo)
     created_base = call(
         'git commit-tree -p {l} -p {r} {h} -m CommitBase'.format(
             l=created_local, r=UPSTREAM_LAST_MERGED_COMMIT, h=tree_hash), cwd=temp_repo)
     call('git checkout {}'.format(created_base), cwd=temp_repo)
+
+    # Squash progress since then...
+    read_subdir_from_ref(local_head, prefix, temp_repo)
+    try:
+        call('git commit -m CurrentHead', cwd=temp_repo)
+    except subprocess.CalledProcessError:
+        print('Unable to commit as CurrentHead, probably no changes')
+
+    call('git merge local/{}'.format(remote_branch), cwd=temp_repo)
 
 
 def clone(src_branch):
