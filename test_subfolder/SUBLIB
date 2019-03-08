@@ -88,7 +88,36 @@ def pull(remote_branch):
     except subprocess.CalledProcessError:
         print('Unable to commit as CurrentHead, probably no changes')
 
-    call('git merge local/{}'.format(remote_branch), cwd=temp_repo)
+    # TODO: Provide a better merge commit message here
+    remote_merged = call('git rev-parse local/{}'.format(remote_branch), cwd=temp_repo)
+    try: 
+        call('git merge local/{}'.format(remote_branch), cwd=temp_repo)
+    except subprocess.CalledProcessError:
+        print("Unable to complete merge, probably a conflict. Call finish() sometime later.")
+    
+    finish(temp_repo, remote_merged)
+
+
+def finish(temp_repo, remote_merged):
+    """Pushes the merged result back into the main repo"""
+    # TODO: check that nothing is broken
+    repo_root = call('git rev-parse --show-toplevel')
+    prefix = get_prefix()
+    old_config = stash_config()
+    call('git push local HEAD:refs/heads/sublib_temp_merge_result', cwd=temp_repo)
+    merge_result = call('git rev-parse sublib_temp_merge_result')
+
+    call('git rm --cached --ignore-unmatch -rf {}/*'.format(prefix), cwd=repo_root)
+    call('git read-tree --prefix {p} {h}'.format(p=prefix, h=merge_result))
+    call('git branch -D sublib_temp_merge_result')
+    
+    # TODO: Provide a better merge commit message here
+    store_config(old_config, {
+        'UPSTREAM_LAST_MERGED_COMMIT': remote_merged,
+        'LOCAL_LAST_MERGE_PARENT': call('git rev-parse HEAD'),
+    })
+    call('git commit -m DidAPull', cwd=repo_root)
+    call('git reset --hard')
 
 
 def clone(src_branch):
@@ -104,7 +133,8 @@ def clone(src_branch):
     call('git read-tree -u --prefix {p} {h}'.format(p=prefix, h=remote_hash))
 
     with open(os.path.join(os.curdir, FILENAME), 'a') as thisfile:
-        store_config({
+        store_config(stash_config(), 
+        {
             'UPSTREAM_URL': None,
             'UPSTREAM_BRANCH': src_branch,
             'UPSTREAM_LAST_MERGED_COMMIT': remote_hash,
@@ -116,11 +146,15 @@ def clone(src_branch):
     print('Files from {} cloned into the current directory, commit to finalize')
 
 
-def store_config(args):
-    # TODO: add new args correctly as well
+def stash_config():
     with open(os.path.join(os.curdir, 'SUBLIB'), 'r') as oldfile:
         lines = oldfile.readlines()
 
+    return lines
+
+
+def store_config(lines, args={}):
+    # TODO: add new args correctly as well
     for i, line in enumerate(lines):
         if line.split():
             varname = line.split()[0]
